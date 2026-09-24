@@ -77,7 +77,12 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = viewModel(
 private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) {
     var apiKey by rememberSaveable { mutableStateOf(initial.apiKey) }
     var model by rememberSaveable { mutableStateOf(initial.model) }
-    var voice by rememberSaveable { mutableStateOf(initial.voice) }
+    // Only prebuilt voices can be selected, so any other stored name falls back to the default.
+    var voice by rememberSaveable {
+        mutableStateOf(
+            PREBUILT_VOICES.find { it.name.equals(initial.voice, ignoreCase = true) }?.name ?: LiveSettings.DEFAULT_VOICE,
+        )
+    }
     // Codes missing from the check list could be neither shown nor unchecked, so they are dropped.
     var transcriptionLanguages by rememberSaveable {
         mutableStateOf(selectedLanguages(initial.transcriptionLanguages).toCodes())
@@ -143,14 +148,13 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
                 onValueChange = { model = it },
                 label = stringResource(R.string.settings_model),
                 supportingText = stringResource(R.string.settings_default_value, LiveSettings.DEFAULT_MODEL),
-                suggestions = LIVE_MODELS.map { Suggestion(it) },
+                suggestions = LIVE_MODELS,
             )
-            SuggestionTextField(
-                value = voice,
-                onValueChange = { voice = it },
+            VoiceSelectField(
+                voice = voice,
+                onVoiceChange = { voice = it },
                 label = stringResource(R.string.settings_voice),
                 supportingText = stringResource(R.string.settings_default_value, LiveSettings.DEFAULT_VOICE),
-                suggestions = PREBUILT_VOICES.map { Suggestion(it.name, stringResource(it.style)) },
             )
             LanguageSelectField(
                 selected = selectedLanguages(transcriptionLanguages),
@@ -178,16 +182,14 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
     }
 }
 
-private data class Suggestion(val value: String, val description: String? = null)
-
-/** A free-text field with a drop-down of suggested values, each followed by its description in parentheses. */
+/** A free-text field with a drop-down of suggested values. */
 @Composable
 private fun SuggestionTextField(
     value: String,
     onValueChange: (String) -> Unit,
     label: String,
     supportingText: String,
-    suggestions: List<Suggestion>,
+    suggestions: List<String>,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth()) {
@@ -207,19 +209,9 @@ private fun SuggestionTextField(
         DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
             suggestions.forEach { suggestion ->
                 DropdownMenuItem(
-                    text = {
-                        val descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        Text(
-                            buildAnnotatedString {
-                                append(suggestion.value)
-                                suggestion.description?.let {
-                                    withStyle(SpanStyle(color = descriptionColor)) { append(" ($it)") }
-                                }
-                            },
-                        )
-                    },
+                    text = { Text(suggestion) },
                     onClick = {
-                        onValueChange(suggestion.value)
+                        onValueChange(suggestion)
                         expanded = false
                     },
                 )
@@ -228,11 +220,40 @@ private fun SuggestionTextField(
     }
 }
 
+/** A read-only field showing the selected voice, picked from a drop-down of [PREBUILT_VOICES]. */
+@Composable
+private fun VoiceSelectField(
+    voice: String,
+    onVoiceChange: (String) -> Unit,
+    label: String,
+    supportingText: String,
+) {
+    SelectField(voice, label, supportingText) { close ->
+        PREBUILT_VOICES.forEach { prebuilt ->
+            DropdownMenuItem(
+                text = {
+                    val styleColor = MaterialTheme.colorScheme.onSurfaceVariant
+                    val style = stringResource(prebuilt.style)
+                    Text(
+                        buildAnnotatedString {
+                            append(prebuilt.name)
+                            withStyle(SpanStyle(color = styleColor)) { append(" ($style)") }
+                        },
+                    )
+                },
+                onClick = {
+                    onVoiceChange(prebuilt.name)
+                    close()
+                },
+            )
+        }
+    }
+}
+
 /**
  * A read-only field showing the names of the selected languages, which are picked from a check list
  * of [TRANSCRIPTION_LANGUAGES].
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun LanguageSelectField(
     selected: List<TranscriptionLanguage>,
@@ -240,10 +261,34 @@ private fun LanguageSelectField(
     label: String,
     supportingText: String,
 ) {
+    SelectField(languageNames(selected), label, supportingText) { _ ->
+        TRANSCRIPTION_LANGUAGES.forEach { language ->
+            val checked = language in selected
+            DropdownMenuItem(
+                text = { Text(stringResource(language.label)) },
+                // The menu stays open so that several languages can be checked in a row.
+                onClick = {
+                    onSelectedChange(TRANSCRIPTION_LANGUAGES.filter { if (it == language) !checked else it in selected })
+                },
+                leadingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
+            )
+        }
+    }
+}
+
+/** A read-only field that opens a drop-down menu when tapped; [menuContent] receives a callback closing it. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun SelectField(
+    value: String,
+    label: String,
+    supportingText: String,
+    menuContent: @Composable (close: () -> Unit) -> Unit,
+) {
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = languageNames(selected),
+            value = value,
             onValueChange = {},
             readOnly = true,
             label = { Text(label) },
@@ -255,17 +300,7 @@ private fun LanguageSelectField(
                 .fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            TRANSCRIPTION_LANGUAGES.forEach { language ->
-                val checked = language in selected
-                DropdownMenuItem(
-                    text = { Text(stringResource(language.label)) },
-                    // The menu stays open so that several languages can be checked in a row.
-                    onClick = {
-                        onSelectedChange(TRANSCRIPTION_LANGUAGES.filter { if (it == language) !checked else it in selected })
-                    },
-                    leadingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
-                )
-            }
+            menuContent { expanded = false }
         }
     }
 }
