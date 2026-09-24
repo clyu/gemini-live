@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="action_settings">設定</string>
+    <string name="action_back">返回</string>
+    <string name="action_clear">清除字幕</string>
+    <string name="action_start">開始對話</string>
+    <string name="action_stop">結束對話</string>
+    <string name="action_mute">麥克風靜音</string>
+    <string name="action_unmute">取消靜音</string>
+    <string name="action_show_key">顯示 API key</string>
+    <string name="action_hide_key">隱藏 API key</string>
+    <string name="action_show_suggestions">顯示選項</string>
+
+    <string name="status_idle">按下通話鈕，開始與 Gemini 即時對話</string>
+    <string name="status_connecting">連線中…</string>
+    <string name="status_reconnecting">重新連線中…</string>
+    <string name="status_listening">正在聆聽…</string>
+    <string name="status_muted">麥克風已靜音</string>
+    <string name="status_model_speaking">Gemini 說話中…</string>
+
+    <string name="transcript_empty">對話字幕會顯示在這裡</string>
+    <string name="speaker_user">你</string>
+    <string name="label_interrupted">已被打斷</string>
+
+    <string name="settings_title">設定</string>
+    <string name="settings_api_key">API key</string>
+    <string name="settings_api_key_hint">可在 Google AI Studio 取得</string>
+    <string name="settings_model">Live API 模型</string>
+    <string name="settings_voice">模型語音</string>
+    <string name="settings_default_value">預設為 %1$s</string>
+    <string name="settings_transcription_language">字幕語言</string>
+    <string name="settings_transcription_language_hint">預設為 %1$s。BCP-47 語言代碼以逗號分隔；留空則自動偵測</string>
+    <string name="settings_system_instruction">System instruction</string>
+    <string name="settings_system_instruction_hint">設定模型的角色、語氣或回覆語言（選填）</string>
+    <string name="settings_footer">離開此頁時會自動儲存，並於下次開始對話時生效。</string>
+
+    <string name="voice_style_bright">明亮</string>
+    <string name="voice_style_upbeat">活潑</string>
+    <string name="voice_style_informative">知性</string>
+    <string name="voice_style_firm">堅定</string>
+    <string name="voice_style_excitable">興奮</string>
+    <string name="voice_style_youthful">年輕</string>
+    <string name="voice_style_breezy">輕快</string>
+    <string name="voice_style_easy_going">隨和</string>
+    <string name="voice_style_breathy">氣音</string>
+    <string name="voice_style_clear">清晰</string>
+    <string name="voice_style_smooth">圓潤</string>
+    <string name="voice_style_gravelly">沙啞</string>
+    <string name="voice_style_soft">柔和</string>
+    <string name="voice_style_even">平穩</string>
+    <string name="voice_style_mature">成熟</string>
+    <string name="voice_style_forward">直率</string>
+    <string name="voice_style_friendly">友善</string>
+    <string name="voice_style_casual">隨性</string>
+    <string name="voice_style_gentle">溫柔</string>
+    <string name="voice_style_lively">生動</string>
+    <string name="voice_style_knowledgeable">博學</string>
+    <string name="voice_style_warm">溫暖</string>
+
+    <string name="language_zh_hant">繁體中文</string>
+    <string name="language_zh_hant_en">繁體中文與英文</string>
+    <string name="language_zh_hans">簡體中文</string>
+    <string name="language_en">英文</string>
+    <string name="language_ja">日文</string>
+    <string name="language_ko">韓文</string>
+
+    <string name="error_missing_api_key">請先在設定頁輸入 API key</string>
+    <string name="error_permission_denied">需要麥克風權限才能進行語音對話</string>
+    <string name="error_audio">無法啟動音訊：%1$s</string>
+    <string name="error_connection_closed">連線已結束：%1$s</string>
+</resources>

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name" translatable="false">Live Voice Chat for Gemini</string>
+    <string name="launcher_name" translatable="false">Live Voice Chat</string>
+
+    <string name="action_settings">Settings</string>
+    <string name="action_back">Back</string>
+    <string name="action_clear">Clear captions</string>
+    <string name="action_start">Start conversation</string>
+    <string name="action_stop">End conversation</string>
+    <string name="action_mute">Mute microphone</string>
+    <string name="action_unmute">Unmute microphone</string>
+    <string name="action_show_key">Show API key</string>
+    <string name="action_hide_key">Hide API key</string>
+    <string name="action_show_suggestions">Show options</string>
+
+    <string name="status_idle">Tap the call button to start talking with Gemini</string>
+    <string name="status_connecting">Connecting…</string>
+    <string name="status_reconnecting">Reconnecting…</string>
+    <string name="status_listening">Listening…</string>
+    <string name="status_muted">Microphone muted</string>
+    <string name="status_model_speaking">Gemini is speaking…</string>
+
+    <string name="transcript_empty">Conversation captions will appear here</string>
+    <string name="speaker_user">You</string>
+    <string name="speaker_model" translatable="false">Gemini</string>
+    <string name="label_interrupted">Interrupted</string>
+
+    <string name="settings_title">Settings</string>
+    <string name="settings_api_key">API key</string>
+    <string name="settings_api_key_hint">Get one from Google AI Studio</string>
+    <string name="settings_model">Live API model</string>
+    <string name="settings_voice">Model voice</string>
+    <string name="settings_default_value">Default: %1$s</string>
+    <string name="settings_transcription_language">Caption language</string>
+    <string name="settings_transcription_language_hint">Default: %1$s. Separate BCP-47 codes with commas; leave blank to detect automatically</string>
+    <string name="settings_system_instruction">System instruction</string>
+    <string name="settings_system_instruction_hint">The model\'s role, tone or reply language (optional)</string>
+    <string name="settings_footer">Changes are saved when you leave this screen and take effect the next time you start a conversation.</string>
+
+    <!-- Voice styles from the Gemini speech generation docs. -->
+    <string name="voice_style_bright">Bright</string>
+    <string name="voice_style_upbeat">Upbeat</string>
+    <string name="voice_style_informative">Informative</string>
+    <string name="voice_style_firm">Firm</string>
+    <string name="voice_style_excitable">Excitable</string>
+    <string name="voice_style_youthful">Youthful</string>
+    <string name="voice_style_breezy">Breezy</string>
+    <string name="voice_style_easy_going">Easy-going</string>
+    <string name="voice_style_breathy">Breathy</string>
+    <string name="voice_style_clear">Clear</string>
+    <string name="voice_style_smooth">Smooth</string>
+    <string name="voice_style_gravelly">Gravelly</string>
+    <string name="voice_style_soft">Soft</string>
+    <string name="voice_style_even">Even</string>
+    <string name="voice_style_mature">Mature</string>
+    <string name="voice_style_forward">Forward</string>
+    <string name="voice_style_friendly">Friendly</string>
+    <string name="voice_style_casual">Casual</string>
+    <string name="voice_style_gentle">Gentle</string>
+    <string name="voice_style_lively">Lively</string>
+    <string name="voice_style_knowledgeable">Knowledgeable</string>
+    <string name="voice_style_warm">Warm</string>
+
+    <string name="language_zh_hant">Chinese (Traditional)</string>
+    <string name="language_zh_hant_en">Chinese (Traditional) and English</string>
+    <string name="language_zh_hans">Chinese (Simplified)</string>
+    <string name="language_en">English</string>
+    <string name="language_ja">Japanese</string>
+    <string name="language_ko">Korean</string>
+
+    <string name="error_missing_api_key">Enter your API key in Settings first</string>
+    <string name="error_permission_denied">Microphone permission is required for voice conversations</string>
+    <string name="error_audio">Could not start audio: %1$s</string>
+    <string name="error_connection_closed">Connection closed: %1$s</string>
+</resources>
