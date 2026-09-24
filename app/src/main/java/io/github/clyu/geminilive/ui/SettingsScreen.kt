@@ -34,9 +34,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -140,6 +143,7 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
                 label = stringResource(R.string.settings_voice),
                 supportingText = stringResource(R.string.settings_default_value, LiveSettings.DEFAULT_VOICE),
                 suggestions = PREBUILT_VOICES.map { Suggestion(it.name, stringResource(it.style)) },
+                inlineDescription = true,
             )
             SuggestionTextField(
                 value = transcriptionLanguages,
@@ -170,7 +174,10 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
 
 private data class Suggestion(val value: String, val description: String? = null)
 
-/** A free-text field with a drop-down of suggested values. */
+/**
+ * A free-text field with a drop-down of suggested values. Descriptions are shown below each value,
+ * or in parentheses after it when [inlineDescription] is set.
+ */
 @Composable
 private fun SuggestionTextField(
     value: String,
@@ -178,6 +185,7 @@ private fun SuggestionTextField(
     label: String,
     supportingText: String,
     suggestions: List<Suggestion>,
+    inlineDescription: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth()) {
@@ -198,14 +206,26 @@ private fun SuggestionTextField(
             suggestions.forEach { suggestion ->
                 DropdownMenuItem(
                     text = {
-                        Column {
-                            Text(suggestion.value)
-                            suggestion.description?.let {
-                                Text(
-                                    text = it,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                )
+                        if (inlineDescription) {
+                            val descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant
+                            Text(
+                                buildAnnotatedString {
+                                    append(suggestion.value)
+                                    suggestion.description?.let {
+                                        withStyle(SpanStyle(color = descriptionColor)) { append(" ($it)") }
+                                    }
+                                },
+                            )
+                        } else {
+                            Column {
+                                Text(suggestion.value)
+                                suggestion.description?.let {
+                                    Text(
+                                        text = it,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
                             }
                         }
                     },
