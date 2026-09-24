@@ -29,7 +29,7 @@
     <string name="settings_voice">模型語音</string>
     <string name="settings_default_value">預設為 %1$s</string>
     <string name="settings_transcription_language">字幕語言</string>
-    <string name="settings_transcription_language_hint">預設為 %1$s。BCP-47 語言代碼以逗號分隔；留空則自動偵測</string>
+    <string name="settings_transcription_language_hint">預設為%1$s。都不勾選則自動偵測</string>
     <string name="settings_system_instruction">系統提示詞</string>
     <string name="settings_system_instruction_hint">設定模型的角色、語氣或回覆語言（選填）</string>
     <string name="settings_footer">離開此頁時會自動儲存，並於下次開始對話時生效。</string>
@@ -57,8 +57,8 @@
     <string name="voice_style_knowledgeable">博學</string>
     <string name="voice_style_warm">溫暖</string>
 
+    <string name="list_separator">、</string>
     <string name="language_zh_hant">繁體中文</string>
-    <string name="language_zh_hant_en">繁體中文與英文</string>
     <string name="language_zh_hans">簡體中文</string>
     <string name="language_en">英文</string>
     <string name="language_ja">日文</string>

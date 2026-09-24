@@ -14,7 +14,7 @@ An Android app for real-time voice conversations with Gemini through the [Gemini
   - Live API model (defaults to `gemini-3.8-live`; any other model ID can be entered)
   - System instruction
   - Model voice (defaults to `Zephyr`; pick from 30 prebuilt voices)
-  - Caption language (BCP-47 hints, defaults to `zh-Hant, en`; leave blank for automatic detection)
+  - Caption language (defaults to Traditional Chinese and English; check one or more languages from a list, or none for automatic detection)
 
 ## Building
 

@@ -33,7 +33,7 @@
     <string name="settings_voice">Model voice</string>
     <string name="settings_default_value">Default: %1$s</string>
     <string name="settings_transcription_language">Caption language</string>
-    <string name="settings_transcription_language_hint">Default: %1$s. Separate BCP-47 codes with commas; leave blank to detect automatically</string>
+    <string name="settings_transcription_language_hint">Default: %1$s. Select none to detect automatically</string>
     <string name="settings_system_instruction">System instruction</string>
     <string name="settings_system_instruction_hint">The model\'s role, tone or reply language (optional)</string>
     <string name="settings_footer">Changes are saved when you leave this screen and take effect the next time you start a conversation.</string>
@@ -62,8 +62,8 @@
     <string name="voice_style_knowledgeable">Knowledgeable</string>
     <string name="voice_style_warm">Warm</string>
 
+    <string name="list_separator">", "</string>
     <string name="language_zh_hant">Chinese (Traditional)</string>
-    <string name="language_zh_hant_en">Chinese (Traditional) and English</string>
     <string name="language_zh_hans">Chinese (Simplified)</string>
     <string name="language_en">English</string>
     <string name="language_ja">Japanese</string>

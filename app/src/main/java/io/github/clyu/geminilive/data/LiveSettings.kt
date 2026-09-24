@@ -12,12 +12,16 @@ data class LiveSettings(
     val systemInstruction: String = "",
 ) {
     val transcriptionLanguageCodes: List<String>
-        get() = transcriptionLanguages.split(',', '，', ' ').map { it.trim() }.filter { it.isNotEmpty() }
+        get() = parseLanguageCodes(transcriptionLanguages)
 
     companion object {
         const val DEFAULT_MODEL = "gemini-3.8-live"
         const val DEFAULT_VOICE = "Zephyr"
         const val DEFAULT_TRANSCRIPTION_LANGUAGES = "zh-Hant, en"
+
+        /** Splits a comma- or space-separated list of language codes. */
+        fun parseLanguageCodes(text: String): List<String> =
+            text.split(',', '，', ' ').map { it.trim() }.filter { it.isNotEmpty() }
     }
 }
 
@@ -29,15 +33,14 @@ val LIVE_MODELS = listOf(
     "gemini-2.5-flash-native-audio-preview-12-2025",
 )
 
-data class TranscriptionLanguage(val codes: String, @StringRes val label: Int)
+data class TranscriptionLanguage(val code: String, @StringRes val label: Int)
 
 /**
- * Caption language hints offered as suggestions. Without a hint, Mandarin is transcribed in
+ * Caption languages offered in the check list. Without a hint, Mandarin is transcribed in
  * Simplified Chinese because speech carries no information about the script.
  */
 val TRANSCRIPTION_LANGUAGES = listOf(
     TranscriptionLanguage("zh-Hant", R.string.language_zh_hant),
-    TranscriptionLanguage("zh-Hant, en", R.string.language_zh_hant_en),
     TranscriptionLanguage("zh-Hans", R.string.language_zh_hans),
     TranscriptionLanguage("en", R.string.language_en),
     TranscriptionLanguage("ja", R.string.language_ja),

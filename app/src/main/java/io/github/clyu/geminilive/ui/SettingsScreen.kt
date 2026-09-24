@@ -13,9 +13,13 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -48,6 +52,7 @@ import io.github.clyu.geminilive.data.LIVE_MODELS
 import io.github.clyu.geminilive.data.LiveSettings
 import io.github.clyu.geminilive.data.PREBUILT_VOICES
 import io.github.clyu.geminilive.data.TRANSCRIPTION_LANGUAGES
+import io.github.clyu.geminilive.data.TranscriptionLanguage
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = viewModel()) {
@@ -73,7 +78,10 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
     var apiKey by rememberSaveable { mutableStateOf(initial.apiKey) }
     var model by rememberSaveable { mutableStateOf(initial.model) }
     var voice by rememberSaveable { mutableStateOf(initial.voice) }
-    var transcriptionLanguages by rememberSaveable { mutableStateOf(initial.transcriptionLanguages) }
+    // Codes missing from the check list could be neither shown nor unchecked, so they are dropped.
+    var transcriptionLanguages by rememberSaveable {
+        mutableStateOf(selectedLanguages(initial.transcriptionLanguages).toCodes())
+    }
     var systemInstruction by rememberSaveable { mutableStateOf(initial.systemInstruction) }
     var showApiKey by rememberSaveable { mutableStateOf(false) }
 
@@ -143,17 +151,15 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
                 label = stringResource(R.string.settings_voice),
                 supportingText = stringResource(R.string.settings_default_value, LiveSettings.DEFAULT_VOICE),
                 suggestions = PREBUILT_VOICES.map { Suggestion(it.name, stringResource(it.style)) },
-                inlineDescription = true,
             )
-            SuggestionTextField(
-                value = transcriptionLanguages,
-                onValueChange = { transcriptionLanguages = it },
+            LanguageSelectField(
+                selected = selectedLanguages(transcriptionLanguages),
+                onSelectedChange = { transcriptionLanguages = it.toCodes() },
                 label = stringResource(R.string.settings_transcription_language),
                 supportingText = stringResource(
                     R.string.settings_transcription_language_hint,
-                    LiveSettings.DEFAULT_TRANSCRIPTION_LANGUAGES,
+                    languageNames(selectedLanguages(LiveSettings.DEFAULT_TRANSCRIPTION_LANGUAGES)),
                 ),
-                suggestions = TRANSCRIPTION_LANGUAGES.map { Suggestion(it.codes, stringResource(it.label)) },
             )
             OutlinedTextField(
                 value = systemInstruction,
@@ -174,10 +180,7 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
 
 private data class Suggestion(val value: String, val description: String? = null)
 
-/**
- * A free-text field with a drop-down of suggested values. Descriptions are shown below each value,
- * or in parentheses after it when [inlineDescription] is set.
- */
+/** A free-text field with a drop-down of suggested values, each followed by its description in parentheses. */
 @Composable
 private fun SuggestionTextField(
     value: String,
@@ -185,7 +188,6 @@ private fun SuggestionTextField(
     label: String,
     supportingText: String,
     suggestions: List<Suggestion>,
-    inlineDescription: Boolean = false,
 ) {
     var expanded by remember { mutableStateOf(false) }
     Box(Modifier.fillMaxWidth()) {
@@ -206,28 +208,15 @@ private fun SuggestionTextField(
             suggestions.forEach { suggestion ->
                 DropdownMenuItem(
                     text = {
-                        if (inlineDescription) {
-                            val descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant
-                            Text(
-                                buildAnnotatedString {
-                                    append(suggestion.value)
-                                    suggestion.description?.let {
-                                        withStyle(SpanStyle(color = descriptionColor)) { append(" ($it)") }
-                                    }
-                                },
-                            )
-                        } else {
-                            Column {
-                                Text(suggestion.value)
+                        val descriptionColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        Text(
+                            buildAnnotatedString {
+                                append(suggestion.value)
                                 suggestion.description?.let {
-                                    Text(
-                                        text = it,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                    withStyle(SpanStyle(color = descriptionColor)) { append(" ($it)") }
                                 }
-                            }
-                        }
+                            },
+                        )
                     },
                     onClick = {
                         onValueChange(suggestion.value)
@@ -238,3 +227,57 @@ private fun SuggestionTextField(
         }
     }
 }
+
+/**
+ * A read-only field showing the names of the selected languages, which are picked from a check list
+ * of [TRANSCRIPTION_LANGUAGES].
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageSelectField(
+    selected: List<TranscriptionLanguage>,
+    onSelectedChange: (List<TranscriptionLanguage>) -> Unit,
+    label: String,
+    supportingText: String,
+) {
+    var expanded by remember { mutableStateOf(false) }
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
+        OutlinedTextField(
+            value = languageNames(selected),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(label) },
+            supportingText = { Text(supportingText) },
+            singleLine = true,
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            modifier = Modifier
+                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .fillMaxWidth(),
+        )
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+            TRANSCRIPTION_LANGUAGES.forEach { language ->
+                val checked = language in selected
+                DropdownMenuItem(
+                    text = { Text(stringResource(language.label)) },
+                    // The menu stays open so that several languages can be checked in a row.
+                    onClick = {
+                        onSelectedChange(TRANSCRIPTION_LANGUAGES.filter { if (it == language) !checked else it in selected })
+                    },
+                    leadingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun languageNames(languages: List<TranscriptionLanguage>): String =
+    languages.map { stringResource(it.label) }.joinToString(stringResource(R.string.list_separator))
+
+/** The languages of [TRANSCRIPTION_LANGUAGES] whose codes appear in [codes], in check-list order. */
+private fun selectedLanguages(codes: String): List<TranscriptionLanguage> {
+    val parsed = LiveSettings.parseLanguageCodes(codes)
+    return TRANSCRIPTION_LANGUAGES.filter { language -> parsed.any { it.equals(language.code, ignoreCase = true) } }
+}
+
+private fun List<TranscriptionLanguage>.toCodes(): String = joinToString(", ") { it.code }
