@@ -2,7 +2,7 @@
 <resources>
     <string name="action_settings">設定</string>
     <string name="action_back">返回</string>
-    <string name="action_clear">清除字幕</string>
+    <string name="action_clear">清除對話</string>
     <string name="action_start">開始對話</string>
     <string name="action_stop">結束對話</string>
     <string name="action_mute">麥克風靜音</string>
@@ -18,7 +18,7 @@
     <string name="status_muted">麥克風已靜音</string>
     <string name="status_model_speaking">Gemini 說話中…</string>
 
-    <string name="transcript_empty">對話字幕會顯示在這裡</string>
+    <string name="transcript_empty">對話紀錄會顯示在這裡</string>
     <string name="speaker_user">你</string>
     <string name="label_interrupted">已被打斷</string>
 
@@ -30,7 +30,7 @@
     <string name="settings_default_value">預設為 %1$s</string>
     <string name="settings_transcription_language">字幕語言</string>
     <string name="settings_transcription_language_hint">預設為 %1$s。BCP-47 語言代碼以逗號分隔；留空則自動偵測</string>
-    <string name="settings_system_instruction">System instruction</string>
+    <string name="settings_system_instruction">系統提示詞</string>
     <string name="settings_system_instruction_hint">設定模型的角色、語氣或回覆語言（選填）</string>
     <string name="settings_footer">離開此頁時會自動儲存，並於下次開始對話時生效。</string>
 
