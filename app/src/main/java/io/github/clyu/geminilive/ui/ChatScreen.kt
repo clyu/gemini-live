@@ -2,8 +2,12 @@ package io.github.clyu.geminilive.ui
 
 import android.Manifest
 import android.content.pm.PackageManager
+import androidx.activity.compose.BackHandler
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +19,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledIconButton
@@ -47,6 +53,8 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
@@ -92,19 +100,38 @@ fun ChatScreen(onOpenSettings: () -> Unit, viewModel: ChatViewModel = viewModel(
         onDispose { view.keepScreenOn = false }
     }
 
+    val selecting = state.selection.isNotEmpty()
+    BackHandler(enabled = selecting, onBack = viewModel::clearSelection)
+
     Scaffold(
         topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.app_name)) },
-                actions = {
-                    IconButton(onClick = viewModel::clearTranscript, enabled = state.transcript.isNotEmpty()) {
-                        Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.action_clear))
-                    }
-                    IconButton(onClick = onOpenSettings) {
-                        Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.action_settings))
-                    }
-                },
-            )
+            if (selecting) {
+                TopAppBar(
+                    navigationIcon = {
+                        IconButton(onClick = viewModel::clearSelection) {
+                            Icon(painterResource(R.drawable.ic_close), stringResource(R.string.action_clear_selection))
+                        }
+                    },
+                    title = { Text(stringResource(R.string.selection_count, state.selection.size)) },
+                    actions = {
+                        IconButton(onClick = viewModel::deleteSelection) {
+                            Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.action_delete))
+                        }
+                    },
+                )
+            } else {
+                TopAppBar(
+                    title = { Text(stringResource(R.string.app_name)) },
+                    actions = {
+                        IconButton(onClick = viewModel::clearTranscript, enabled = state.transcript.isNotEmpty()) {
+                            Icon(painterResource(R.drawable.ic_delete), stringResource(R.string.action_clear))
+                        }
+                        IconButton(onClick = onOpenSettings) {
+                            Icon(painterResource(R.drawable.ic_settings), stringResource(R.string.action_settings))
+                        }
+                    },
+                )
+            }
         },
         bottomBar = {
             ControlBar(
@@ -118,6 +145,9 @@ fun ChatScreen(onOpenSettings: () -> Unit, viewModel: ChatViewModel = viewModel(
     ) { padding ->
         TranscriptList(
             entries = state.transcript,
+            selection = state.selection,
+            // Captions still being written by an ongoing conversation must not disappear under it.
+            onToggleSelection = if (active) null else viewModel::toggleSelection,
             modifier = Modifier
                 .fillMaxSize()
                 .padding(padding),
@@ -126,7 +156,12 @@ fun ChatScreen(onOpenSettings: () -> Unit, viewModel: ChatViewModel = viewModel(
 }
 
 @Composable
-private fun TranscriptList(entries: List<TranscriptEntry>, modifier: Modifier = Modifier) {
+private fun TranscriptList(
+    entries: List<TranscriptEntry>,
+    selection: Set<Long>,
+    onToggleSelection: ((Long) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
     if (entries.isEmpty()) {
         Box(modifier.padding(32.dp), contentAlignment = Alignment.Center) {
             Text(
@@ -157,25 +192,57 @@ private fun TranscriptList(entries: List<TranscriptEntry>, modifier: Modifier = 
     LaunchedEffect(newest.id, newest.text.length) {
         if (followLatest && !listState.isScrollInProgress) listState.scrollToItem(0)
     }
+    val selecting = selection.isNotEmpty()
+    // The spacing between bubbles is padding inside each of them, so that the whole row responds
+    // to touch and the ripple spans the width of the screen.
     LazyColumn(
         modifier = modifier,
         state = listState,
         reverseLayout = true,
-        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 12.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.Bottom),
+        contentPadding = PaddingValues(vertical = 6.dp),
+        verticalArrangement = Arrangement.Bottom,
     ) {
         items(entries.asReversed(), key = { it.id }) { entry ->
-            TranscriptBubble(entry)
+            TranscriptBubble(
+                entry = entry,
+                selecting = selecting,
+                isSelected = entry.id in selection,
+                onToggleSelection = if (onToggleSelection != null) { { onToggleSelection(entry.id) } } else null,
+            )
         }
     }
 }
 
+/**
+ * Long-pressing the bubble selects it, unless [onToggleSelection] is null. While [selecting], a tap
+ * selects or deselects it.
+ */
 @Composable
-private fun TranscriptBubble(entry: TranscriptEntry) {
+private fun TranscriptBubble(
+    entry: TranscriptEntry,
+    selecting: Boolean,
+    isSelected: Boolean,
+    onToggleSelection: (() -> Unit)?,
+) {
     val isUser = entry.role == Role.User
     Column(
         modifier = Modifier
             .fillMaxWidth()
+            .then(
+                if (onToggleSelection != null) {
+                    Modifier
+                        .combinedClickable(
+                            onLongClickLabel = stringResource(R.string.action_select),
+                            // While selecting, a long press counts as a tap.
+                            onLongClick = if (selecting) null else onToggleSelection,
+                            onClick = { if (selecting) onToggleSelection() },
+                        )
+                        .semantics { if (selecting) selected = isSelected }
+                } else {
+                    Modifier
+                },
+            )
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .padding(start = if (isUser) 48.dp else 0.dp, end = if (isUser) 0.dp else 48.dp),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start,
     ) {
@@ -185,15 +252,30 @@ private fun TranscriptBubble(entry: TranscriptEntry) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp),
         )
-        Surface(
-            shape = RoundedCornerShape(18.dp),
-            color = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
-        ) {
-            Text(
-                text = entry.text.trim(),
-                style = MaterialTheme.typography.bodyLarge,
-                modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
-            )
+        Box {
+            Surface(
+                shape = RoundedCornerShape(18.dp),
+                color = if (isUser) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh,
+                border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+            ) {
+                Text(
+                    text = entry.text.trim(),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
+                )
+            }
+            if (selecting) {
+                // Straddles the bubble's left edge at its top, so it covers neither the caption's
+                // first word nor the speaker label above; the backing disc sets it off the bubble.
+                Icon(
+                    painter = painterResource(if (isSelected) R.drawable.ic_check_circle else R.drawable.ic_circle),
+                    contentDescription = null,
+                    tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .offset(x = (-12).dp)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape),
+                )
+            }
         }
         if (entry.interrupted) {
             Text(

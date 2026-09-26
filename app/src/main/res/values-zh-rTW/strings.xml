@@ -3,6 +3,9 @@
     <string name="action_settings">設定</string>
     <string name="action_back">返回</string>
     <string name="action_clear">清除對話</string>
+    <string name="action_delete">刪除</string>
+    <string name="action_select">選取</string>
+    <string name="action_clear_selection">取消選取</string>
     <string name="action_start">開始對話</string>
     <string name="action_stop">結束對話</string>
     <string name="action_mute">麥克風靜音</string>
@@ -21,6 +24,7 @@
     <string name="transcript_empty">對話紀錄會顯示在這裡</string>
     <string name="speaker_user">你</string>
     <string name="label_interrupted">已被打斷</string>
+    <string name="selection_count">已選取 %1$d 項</string>
 
     <string name="settings_title">設定</string>
     <string name="settings_api_key">API key</string>

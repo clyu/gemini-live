@@ -34,6 +34,8 @@ data class ChatUiState(
     val micMuted: Boolean = false,
     val modelSpeaking: Boolean = false,
     val transcript: List<TranscriptEntry> = emptyList(),
+    /** IDs of the captions selected for deletion; only ever non-empty between conversations. */
+    val selection: Set<Long> = emptySet(),
     val message: String? = null,
 )
 
@@ -96,7 +98,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     /** Starts a voice session. The caller must already hold the RECORD_AUDIO permission. */
     fun start() {
         if (_state.value.status != SessionStatus.Idle) return
-        _state.update { it.copy(status = SessionStatus.Connecting, micMuted = false) }
+        _state.update { it.copy(status = SessionStatus.Connecting, micMuted = false, selection = emptySet()) }
         startJob = viewModelScope.launch {
             // New captions must not arrive before the saved transcript has been restored.
             restoreJob.join()
@@ -134,7 +136,22 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     fun clearTranscript() {
         closeTurn()
-        _state.update { it.copy(transcript = emptyList()) }
+        _state.update { it.copy(transcript = emptyList(), selection = emptySet()) }
+    }
+
+    /**
+     * Selects or deselects a caption for deletion. Only allowed between conversations, when no
+     * caption is still growing.
+     */
+    fun toggleSelection(id: Long) {
+        if (_state.value.status != SessionStatus.Idle) return
+        _state.update { it.copy(selection = if (id in it.selection) it.selection - id else it.selection + id) }
+    }
+
+    fun clearSelection() = _state.update { it.copy(selection = emptySet()) }
+
+    fun deleteSelection() = _state.update { state ->
+        state.copy(transcript = state.transcript.filterNot { it.id in state.selection }, selection = emptySet())
     }
 
     /**

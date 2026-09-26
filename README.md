@@ -7,7 +7,7 @@ An Android app for real-time voice conversations with Gemini through the [Gemini
 - Connects directly to the Live API over WebSocket (`BidiGenerateContent`), streaming 16 kHz PCM from the microphone and playing back 24 kHz PCM
 - Live captions for both sides via `inputAudioTranscription` / `outputAudioTranscription`
 - Barge-in: model playback stops immediately when the user starts speaking
-- Microphone mute and caption clearing
+- Microphone mute and caption clearing; between conversations, long-press a caption to select one or more captions and delete them
 - The conversation transcript is kept after the app is closed, until it is cleared
 - Session resumption and context window compression, so the conversation automatically continues when the connection expires (`goAway`) or the network drops
 - Settings screen:
