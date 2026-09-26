@@ -3,6 +3,8 @@ package io.github.clyu.geminilive.live
 import android.util.Base64
 import android.util.Log
 import io.github.clyu.geminilive.data.LiveSettings
+import io.github.clyu.geminilive.data.Role
+import io.github.clyu.geminilive.data.TranscriptEntry
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -30,6 +32,9 @@ sealed interface LiveEvent {
 /**
  * A single WebSocket connection to the Gemini Live API (BidiGenerateContent).
  *
+ * The captions in [history] are given to the model as the conversation so far, so that a new
+ * session carries on from them; pass none when resuming, as the server already holds them.
+ *
  * Events are delivered on OkHttp's WebSocket reader thread. Once [close] is called no further
  * events are delivered.
  */
@@ -37,8 +42,10 @@ class LiveSession(
     private val client: OkHttpClient,
     private val settings: LiveSettings,
     private val resumeHandle: String?,
+    history: List<TranscriptEntry>,
     private val onEvent: (LiveEvent) -> Unit,
 ) {
+    private val historyMessage: String? = buildHistoryMessage(history)
     @Volatile private var webSocket: WebSocket? = null
     @Volatile private var ready = false
     @Volatile private var disposed = false
@@ -90,6 +97,10 @@ class LiveSession(
             // Lets the conversation outlive the ~10 minute connection limit and the 15 minute audio session limit.
             .put("contextWindowCompression", JSONObject().put("slidingWindow", JSONObject()))
             .put("sessionResumption", JSONObject().apply { resumeHandle?.let { put("handle", it) } })
+        if (historyMessage != null) {
+            // The server then takes the history as context without the model replying to it.
+            setup.put("historyConfig", JSONObject().put("initialHistoryInClientContent", true))
+        }
         if (settings.systemInstruction.isNotBlank()) {
             setup.put(
                 "systemInstruction",
@@ -97,6 +108,38 @@ class LiveSession(
             )
         }
         return JSONObject().put("setup", setup).toString()
+    }
+
+    /**
+     * The captions as a clientContent message, with consecutive captions of one speaker merged
+     * into one turn; null when there is nothing to send. Only the text reaches the model, so it
+     * sees any transcription errors rather than what was actually said.
+     */
+    private fun buildHistoryMessage(history: List<TranscriptEntry>): String? {
+        val turns = mutableListOf<Pair<Role, MutableList<String>>>()
+        for (entry in history) {
+            val text = entry.text.trim()
+            if (text.isEmpty()) continue
+            val last = turns.lastOrNull()
+            if (last != null && last.first == entry.role) {
+                last.second += text
+            } else {
+                turns += entry.role to mutableListOf(text)
+            }
+        }
+        if (turns.isEmpty()) return null
+        val contents = JSONArray()
+        for ((role, texts) in turns) {
+            contents.put(
+                JSONObject()
+                    .put("role", if (role == Role.User) "user" else "model")
+                    .put("parts", JSONArray().put(JSONObject().put("text", texts.joinToString("\n")))),
+            )
+        }
+        // turnComplete ends the initial history; it does not ask the model for a reply.
+        return JSONObject()
+            .put("clientContent", JSONObject().put("turns", contents).put("turnComplete", true))
+            .toString()
     }
 
     private fun transcriptionConfig(): JSONObject {
@@ -112,6 +155,8 @@ class LiveSession(
             return
         }
         if (message.has("setupComplete")) {
+            // The server reads the history before anything else, so it goes out ahead of any audio.
+            historyMessage?.let { webSocket?.send(it) }
             ready = true
             emit(LiveEvent.SetupComplete)
         }

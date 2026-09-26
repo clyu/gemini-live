@@ -100,7 +100,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (_state.value.status != SessionStatus.Idle) return
         _state.update { it.copy(status = SessionStatus.Connecting, micMuted = false, selection = emptySet()) }
         startJob = viewModelScope.launch {
-            // New captions must not arrive before the saved transcript has been restored.
+            // The saved transcript must be restored before it is sent as context, and before new
+            // captions arrive.
             restoreJob.join()
             val current = settingsRepository.settings.first()
             if (current.apiKey.isBlank()) {
@@ -175,7 +176,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private fun openSession() {
         val current = settings ?: return
         val gen = ++generation
-        session = LiveSession(httpClient, current, resumeHandle) { event -> onSessionEvent(gen, event) }
+        // A new conversation continues from the captions on screen; a resumed one already has them.
+        val history = if (resumeHandle == null) _state.value.transcript else emptyList()
+        session = LiveSession(httpClient, current, resumeHandle, history) { event -> onSessionEvent(gen, event) }
             .also { it.connect() }
     }
 
