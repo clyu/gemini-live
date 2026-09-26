@@ -9,7 +9,10 @@ import io.github.clyu.geminilive.audio.AudioPlayer
 import io.github.clyu.geminilive.audio.AudioRecorder
 import io.github.clyu.geminilive.audio.AudioRouting
 import io.github.clyu.geminilive.data.LiveSettings
+import io.github.clyu.geminilive.data.Role
 import io.github.clyu.geminilive.data.SettingsRepository
+import io.github.clyu.geminilive.data.TranscriptEntry
+import io.github.clyu.geminilive.data.TranscriptRepository
 import io.github.clyu.geminilive.live.LiveEvent
 import io.github.clyu.geminilive.live.LiveSession
 import kotlinx.coroutines.Job
@@ -26,15 +29,6 @@ import java.util.concurrent.TimeUnit
 
 enum class SessionStatus { Idle, Connecting, Connected, Reconnecting }
 
-enum class Role { User, Model }
-
-data class TranscriptEntry(
-    val id: Long,
-    val role: Role,
-    val text: String,
-    val interrupted: Boolean = false,
-)
-
 data class ChatUiState(
     val status: SessionStatus = SessionStatus.Idle,
     val micMuted: Boolean = false,
@@ -46,6 +40,7 @@ data class ChatUiState(
 class ChatViewModel(application: Application) : AndroidViewModel(application) {
 
     private val settingsRepository = SettingsRepository(application)
+    private val transcriptRepository = TranscriptRepository(application)
     private val httpClient = OkHttpClient.Builder()
         .readTimeout(0, TimeUnit.MILLISECONDS)
         .build()
@@ -72,6 +67,12 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     private var openUserEntryId: Long? = null
     private var openModelEntryId: Long? = null
 
+    /** Restores the transcript saved before the app was last closed. */
+    private val restoreJob: Job
+    private var savedTranscript = emptyList<TranscriptEntry>()
+    // Written one at a time so that an older transcript never overwrites a newer one.
+    private val pendingSaves = Channel<List<TranscriptEntry>>(Channel.CONFLATED)
+
     init {
         viewModelScope.launch {
             for ((gen, event) in events) {
@@ -81,6 +82,15 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         viewModelScope.launch {
             player.speaking.collect { speaking -> _state.update { it.copy(modelSpeaking = speaking) } }
         }
+        restoreJob = viewModelScope.launch {
+            val saved = transcriptRepository.load()
+            nextEntryId = (saved.maxOfOrNull { it.id } ?: -1L) + 1
+            savedTranscript = saved
+            _state.update { it.copy(transcript = saved) }
+        }
+        viewModelScope.launch {
+            for (transcript in pendingSaves) transcriptRepository.save(transcript)
+        }
     }
 
     /** Starts a voice session. The caller must already hold the RECORD_AUDIO permission. */
@@ -88,6 +98,8 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         if (_state.value.status != SessionStatus.Idle) return
         _state.update { it.copy(status = SessionStatus.Connecting, micMuted = false) }
         startJob = viewModelScope.launch {
+            // New captions must not arrive before the saved transcript has been restored.
+            restoreJob.join()
             val current = settingsRepository.settings.first()
             if (current.apiKey.isBlank()) {
                 _state.update { it.copy(status = SessionStatus.Idle, message = getString(R.string.error_missing_api_key)) }
@@ -123,6 +135,20 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     fun clearTranscript() {
         closeTurn()
         _state.update { it.copy(transcript = emptyList()) }
+    }
+
+    /**
+     * Writes the transcript to storage if it has changed. To keep writes down, captions are only
+     * held in memory while they arrive; this runs when a conversation ends and when the app leaves
+     * the foreground, the last chance before the process can be killed without warning. Captions
+     * that arrive while the app is in the background are therefore not written until the next of
+     * these, by design.
+     */
+    fun saveTranscript() {
+        val transcript = _state.value.transcript
+        if (transcript == savedTranscript) return
+        savedTranscript = transcript
+        pendingSaves.trySend(transcript)
     }
 
     fun showMessage(message: String) = _state.update { it.copy(message = message) }
@@ -211,6 +237,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         settings = null
         resumeHandle = null
         _state.update { it.copy(status = SessionStatus.Idle, micMuted = false, message = message ?: it.message) }
+        saveTranscript()
     }
 
     private fun startRecorder() {

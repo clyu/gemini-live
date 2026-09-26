@@ -53,6 +53,8 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.clyu.geminilive.R
+import io.github.clyu.geminilive.data.Role
+import io.github.clyu.geminilive.data.TranscriptEntry
 import kotlinx.coroutines.flow.filter
 
 @OptIn(ExperimentalMaterial3Api::class)

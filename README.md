@@ -8,6 +8,7 @@ An Android app for real-time voice conversations with Gemini through the [Gemini
 - Live captions for both sides via `inputAudioTranscription` / `outputAudioTranscription`
 - Barge-in: model playback stops immediately when the user starts speaking
 - Microphone mute and caption clearing
+- The conversation transcript is kept after the app is closed, until it is cleared
 - Session resumption and context window compression, so the conversation automatically continues when the connection expires (`goAway`) or the network drops
 - Settings screen:
   - API key
@@ -39,5 +40,6 @@ Requirements: AGP 9.4, Gradle 9.6 or later, JDK 17 or later, compileSdk 37. The 
 ## Notes
 
 - The API key is stored in the app's private DataStore and is excluded from cloud backups and device transfers.
+- The conversation transcript is stored in the app's `noBackupFilesDir`, so it is likewise never included in cloud backups or device transfers. To keep writes down, it is saved only when a conversation ends or the app leaves the foreground; captions that arrive while the app is in the background are lost if the app is closed before either happens again.
 - Audio is only captured while the app is in the foreground; Android stops delivering microphone audio once the app is in the background.
 - On the loudspeaker, the app relies on the device's built-in echo cancellation, which varies by device. Headphones give the best experience.
