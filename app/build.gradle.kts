@@ -12,7 +12,8 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "1.0"
+        // CI appends its run number so that every build can be told apart; local builds end in 0.
+        versionName = "1.0.${System.getenv("GITHUB_RUN_NUMBER") ?: "0"}"
     }
 
     signingConfigs {

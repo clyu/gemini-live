@@ -50,12 +50,13 @@ jobs:
       - name: Rename build outputs
         id: rename
         run: |
-          version=$(sed -n 's/^ *versionName = "\(.*\)"$/\1/p' app/build.gradle.kts)
+          # The versionName the APK was built with, as recorded by the Android Gradle plugin.
+          version=$(jq -r '.elements[0].versionName // empty' app/build/outputs/apk/release/output-metadata.json)
           if [ -z "$version" ]; then
-            echo "::error::versionName not found in app/build.gradle.kts"
+            echo "::error::versionName not found in app/build/outputs/apk/release/output-metadata.json"
             exit 1
           fi
-          apk_name="Gemini-Live-$version-$GITHUB_RUN_NUMBER"
+          apk_name="Gemini-Live-$version"
           mv app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/$apk_name.apk"
           mv app/build/outputs/mapping/release/mapping.txt "app/build/outputs/mapping/release/$apk_name-mapping.txt"
           echo "apk-name=$apk_name" >> "$GITHUB_OUTPUT"
