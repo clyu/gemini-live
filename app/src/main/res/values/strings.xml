@@ -34,6 +34,8 @@
     <string name="settings_api_key">API key</string>
     <string name="settings_api_key_hint">Get one from Google AI Studio</string>
     <string name="settings_model">Live API model</string>
+    <string name="settings_thinking_level">Thinking level</string>
+    <string name="settings_thinking_level_hint">Automatic: Low for extended-thinking models, unset for others</string>
     <string name="settings_voice">Model voice</string>
     <string name="settings_default_value">Default: %1$s</string>
     <string name="settings_transcription_language">Caption language</string>
@@ -65,6 +67,12 @@
     <string name="voice_style_lively">Lively</string>
     <string name="voice_style_knowledgeable">Knowledgeable</string>
     <string name="voice_style_warm">Warm</string>
+
+    <string name="thinking_level_auto">Automatic</string>
+    <string name="thinking_level_minimal">Minimal</string>
+    <string name="thinking_level_low">Low</string>
+    <string name="thinking_level_medium">Medium</string>
+    <string name="thinking_level_high">High</string>
 
     <string name="list_separator">", "</string>
     <string name="language_zh_hant">Chinese (Traditional)</string>

@@ -7,6 +7,8 @@ data class LiveSettings(
     val apiKey: String = "",
     val model: String = DEFAULT_MODEL,
     val voice: String = DEFAULT_VOICE,
+    /** A thinkingLevel value such as "LOW"; blank sends one only to models that require it. */
+    val thinkingLevel: String = "",
     /** Comma-separated BCP-47 codes hinting the caption language; blank means automatic detection. */
     val transcriptionLanguages: String = DEFAULT_TRANSCRIPTION_LANGUAGES,
     val systemInstruction: String = "",
@@ -31,6 +33,17 @@ val LIVE_MODELS = listOf(
     "gemini-3.8-live-extended-thinking",
     "gemini-3.1-flash-live-preview",
     "gemini-2.5-flash-native-audio-preview-12-2025",
+)
+
+data class ThinkingLevel(val value: String, @StringRes val label: Int)
+
+/** Thinking levels offered in the drop-down, led by the automatic choice. */
+val THINKING_LEVELS = listOf(
+    ThinkingLevel("", R.string.thinking_level_auto),
+    ThinkingLevel("MINIMAL", R.string.thinking_level_minimal),
+    ThinkingLevel("LOW", R.string.thinking_level_low),
+    ThinkingLevel("MEDIUM", R.string.thinking_level_medium),
+    ThinkingLevel("HIGH", R.string.thinking_level_high),
 )
 
 data class TranscriptionLanguage(val code: String, @StringRes val label: Int)

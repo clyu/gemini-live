@@ -14,6 +14,7 @@ An Android app for real-time voice conversations with Gemini through the [Gemini
 - Settings screen:
   - API key
   - Live API model (defaults to `gemini-3.8-live`; any other model ID can be entered)
+  - Thinking level (defaults to Automatic, which asks `-extended-thinking` models for the low level and sends none to other models, since `gemini-3.8-live` does not accept one; or pick minimal, low, medium or high)
   - System instruction
   - Model voice (defaults to `Zephyr`; pick from 30 prebuilt voices)
   - Caption language (defaults to Traditional Chinese and English; check one or more languages from a list, or none for automatic detection)

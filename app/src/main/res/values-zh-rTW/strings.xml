@@ -30,6 +30,8 @@
     <string name="settings_api_key">API key</string>
     <string name="settings_api_key_hint">可在 Google AI Studio 取得</string>
     <string name="settings_model">Live API 模型</string>
+    <string name="settings_thinking_level">思考程度</string>
+    <string name="settings_thinking_level_hint">自動：extended-thinking 模型使用「低」，其他模型不指定</string>
     <string name="settings_voice">模型語音</string>
     <string name="settings_default_value">預設為 %1$s</string>
     <string name="settings_transcription_language">字幕語言</string>
@@ -60,6 +62,12 @@
     <string name="voice_style_lively">生動</string>
     <string name="voice_style_knowledgeable">博學</string>
     <string name="voice_style_warm">溫暖</string>
+
+    <string name="thinking_level_auto">自動</string>
+    <string name="thinking_level_minimal">最低</string>
+    <string name="thinking_level_low">低</string>
+    <string name="thinking_level_medium">中</string>
+    <string name="thinking_level_high">高</string>
 
     <string name="list_separator">、</string>
     <string name="language_zh_hant">繁體中文</string>

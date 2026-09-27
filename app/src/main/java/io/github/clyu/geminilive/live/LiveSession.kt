@@ -84,14 +84,18 @@ class LiveSession(
             "prebuiltVoiceConfig",
             JSONObject().put("voiceName", settings.voice.trim()),
         )
+        val generationConfig = JSONObject()
+            .put("responseModalities", JSONArray().put("AUDIO"))
+            .put("speechConfig", JSONObject().put("voiceConfig", voiceConfig))
+        // Extended-thinking models reject a setup without a thinking level, while gemini-3.8-live
+        // rejects one with it, so unless a level was picked it is only sent to the former. Low
+        // keeps spoken replies quick.
+        val thinkingLevel = settings.thinkingLevel.takeIf { it.isNotBlank() }
+            ?: "LOW".takeIf { model.endsWith("-extended-thinking") }
+        thinkingLevel?.let { generationConfig.put("thinkingConfig", JSONObject().put("thinkingLevel", it)) }
         val setup = JSONObject()
             .put("model", model)
-            .put(
-                "generationConfig",
-                JSONObject()
-                    .put("responseModalities", JSONArray().put("AUDIO"))
-                    .put("speechConfig", JSONObject().put("voiceConfig", voiceConfig)),
-            )
+            .put("generationConfig", generationConfig)
             .put("inputAudioTranscription", transcriptionConfig())
             .put("outputAudioTranscription", transcriptionConfig())
             // Lets the conversation outlive the ~10 minute connection limit and the 15 minute audio session limit.

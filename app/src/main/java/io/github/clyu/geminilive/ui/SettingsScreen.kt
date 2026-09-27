@@ -51,6 +51,7 @@ import io.github.clyu.geminilive.R
 import io.github.clyu.geminilive.data.LIVE_MODELS
 import io.github.clyu.geminilive.data.LiveSettings
 import io.github.clyu.geminilive.data.PREBUILT_VOICES
+import io.github.clyu.geminilive.data.THINKING_LEVELS
 import io.github.clyu.geminilive.data.TRANSCRIPTION_LANGUAGES
 import io.github.clyu.geminilive.data.TranscriptionLanguage
 
@@ -77,6 +78,10 @@ fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = viewModel(
 private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) {
     var apiKey by rememberSaveable { mutableStateOf(initial.apiKey) }
     var model by rememberSaveable { mutableStateOf(initial.model) }
+    // Only listed levels can be selected, so any other stored value falls back to automatic.
+    var thinkingLevel by rememberSaveable {
+        mutableStateOf(THINKING_LEVELS.find { it.value.equals(initial.thinkingLevel, ignoreCase = true) }?.value.orEmpty())
+    }
     // Only prebuilt voices can be selected, so any other stored name falls back to the default.
     var voice by rememberSaveable {
         mutableStateOf(
@@ -96,6 +101,7 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
             LiveSettings(
                 apiKey = apiKey,
                 model = model,
+                thinkingLevel = thinkingLevel,
                 voice = voice,
                 transcriptionLanguages = transcriptionLanguages,
                 systemInstruction = systemInstruction,
@@ -149,6 +155,12 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
                 label = stringResource(R.string.settings_model),
                 supportingText = stringResource(R.string.settings_default_value, LiveSettings.DEFAULT_MODEL),
                 suggestions = LIVE_MODELS,
+            )
+            ThinkingLevelSelectField(
+                level = thinkingLevel,
+                onLevelChange = { thinkingLevel = it },
+                label = stringResource(R.string.settings_thinking_level),
+                supportingText = stringResource(R.string.settings_thinking_level_hint),
             )
             VoiceSelectField(
                 voice = voice,
@@ -216,6 +228,28 @@ private fun SuggestionTextField(
                     },
                 )
             }
+        }
+    }
+}
+
+/** A read-only field showing the selected thinking level, picked from a drop-down of [THINKING_LEVELS]. */
+@Composable
+private fun ThinkingLevelSelectField(
+    level: String,
+    onLevelChange: (String) -> Unit,
+    label: String,
+    supportingText: String,
+) {
+    val selected = THINKING_LEVELS.first { it.value == level }
+    SelectField(stringResource(selected.label), label, supportingText) { close ->
+        THINKING_LEVELS.forEach { option ->
+            DropdownMenuItem(
+                text = { Text(stringResource(option.label)) },
+                onClick = {
+                    onLevelChange(option.value)
+                    close()
+                },
+            )
         }
     }
 }

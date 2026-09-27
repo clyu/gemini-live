@@ -25,6 +25,7 @@ class SettingsRepository(context: Context) {
                 apiKey = prefs[API_KEY].orEmpty(),
                 model = prefs[MODEL]?.takeIf { it.isNotBlank() } ?: LiveSettings.DEFAULT_MODEL,
                 voice = prefs[VOICE]?.takeIf { it.isNotBlank() } ?: LiveSettings.DEFAULT_VOICE,
+                thinkingLevel = prefs[THINKING_LEVEL].orEmpty(),
                 transcriptionLanguages = prefs[TRANSCRIPTION_LANGUAGES] ?: LiveSettings.DEFAULT_TRANSCRIPTION_LANGUAGES,
                 systemInstruction = prefs[SYSTEM_INSTRUCTION].orEmpty(),
             )
@@ -35,6 +36,7 @@ class SettingsRepository(context: Context) {
             prefs[API_KEY] = settings.apiKey.trim()
             prefs[MODEL] = settings.model.trim()
             prefs[VOICE] = settings.voice.trim()
+            prefs[THINKING_LEVEL] = settings.thinkingLevel.trim()
             prefs[TRANSCRIPTION_LANGUAGES] = settings.transcriptionLanguages.trim()
             prefs[SYSTEM_INSTRUCTION] = settings.systemInstruction.trim()
         }
@@ -44,6 +46,7 @@ class SettingsRepository(context: Context) {
         val API_KEY = stringPreferencesKey("api_key")
         val MODEL = stringPreferencesKey("model")
         val VOICE = stringPreferencesKey("voice")
+        val THINKING_LEVEL = stringPreferencesKey("thinking_level")
         val TRANSCRIPTION_LANGUAGES = stringPreferencesKey("transcription_languages")
         val SYSTEM_INSTRUCTION = stringPreferencesKey("system_instruction")
     }
