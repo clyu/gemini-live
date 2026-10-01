@@ -49,7 +49,7 @@ class AudioPlayer {
                     .setEncoding(ENCODING)
                     .build(),
             )
-            .setBufferSizeInBytes(maxOf(minBuffer, SLICE_BYTES * 8))
+            .setBufferSizeInBytes(maxOf(minBuffer, MIN_BUFFER_BYTES))
             .setTransferMode(AudioTrack.MODE_STREAM)
             .build()
         audioTrack.play()
@@ -110,20 +110,27 @@ class AudioPlayer {
                 }
                 continue
             }
-            // Write in small slices so an interrupt takes effect within one slice.
+            // The writes never block, so the lock is only held briefly and an interrupt takes effect
+            // at once; while the track's buffer is full this waits outside the lock instead.
             var offset = 0
-            while (running && offset < chunk.pcm.size) {
+            // A trailing partial frame could never be written, so it is dropped.
+            while (running && chunk.pcm.size - offset >= BYTES_PER_FRAME) {
                 val written = synchronized(lock) {
                     if (chunk.generation != generation) {
                         -1
                     } else {
-                        audioTrack.write(chunk.pcm, offset, minOf(SLICE_BYTES, chunk.pcm.size - offset))
+                        audioTrack.write(chunk.pcm, offset, chunk.pcm.size - offset, AudioTrack.WRITE_NON_BLOCKING)
                             .also { if (it > 0) framesWritten += it / BYTES_PER_FRAME }
                     }
                 }
-                if (written <= 0) break
-                offset += written
-                _speaking.value = true
+                when {
+                    written < 0 -> break
+                    written == 0 -> Thread.sleep(BUFFER_FULL_WAIT_MS)
+                    else -> {
+                        offset += written
+                        _speaking.value = true
+                    }
+                }
             }
         }
     }
@@ -133,7 +140,8 @@ class AudioPlayer {
         const val CHANNEL = AudioFormat.CHANNEL_OUT_MONO
         const val ENCODING = AudioFormat.ENCODING_PCM_16BIT
         const val BYTES_PER_FRAME = 2
-        const val SLICE_BYTES = SAMPLE_RATE * BYTES_PER_FRAME / 50 // 20 ms
+        const val MIN_BUFFER_BYTES = SAMPLE_RATE * BYTES_PER_FRAME * 160 / 1000 // 160 ms
+        const val BUFFER_FULL_WAIT_MS = 10L
         const val IDLE_POLL_MS = 50L
         const val STOP_TIMEOUT_MS = 500L
     }
