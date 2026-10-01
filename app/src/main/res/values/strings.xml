@@ -84,5 +84,6 @@
     <string name="error_missing_api_key">Enter your API key in Settings first</string>
     <string name="error_permission_denied">Microphone permission is required for voice conversations</string>
     <string name="error_audio">Could not start audio: %1$s</string>
+    <string name="error_microphone">Microphone stopped working: %1$s</string>
     <string name="error_connection_closed">Connection closed: %1$s</string>
 </resources>

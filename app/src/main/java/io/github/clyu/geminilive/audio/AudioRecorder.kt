@@ -9,8 +9,16 @@ import android.media.audiofx.NoiseSuppressor
 import android.os.Process
 import kotlin.concurrent.thread
 
-/** Captures 16 kHz, 16-bit mono PCM from the microphone, the input format of the Live API. */
-class AudioRecorder(private val onChunk: (ByteArray) -> Unit) {
+/**
+ * Captures 16 kHz, 16-bit mono PCM from the microphone, the input format of the Live API.
+ *
+ * [onChunk] and [onError] are called on the capture thread. After [onError] nothing more is
+ * captured, but the recorder still has to be stopped.
+ */
+class AudioRecorder(
+    private val onChunk: (ByteArray) -> Unit,
+    private val onError: (Exception) -> Unit,
+) {
 
     private var record: AudioRecord? = null
     private var echoCanceler: AcousticEchoCanceler? = null
@@ -34,14 +42,19 @@ class AudioRecorder(private val onChunk: (ByteArray) -> Unit) {
             audioRecord.release()
             throw IllegalStateException("AudioRecord could not be initialized")
         }
-        if (AcousticEchoCanceler.isAvailable()) {
-            echoCanceler = AcousticEchoCanceler.create(audioRecord.audioSessionId)?.also { it.setEnabled(true) }
-        }
-        if (NoiseSuppressor.isAvailable()) {
-            noiseSuppressor = NoiseSuppressor.create(audioRecord.audioSessionId)?.also { it.setEnabled(true) }
-        }
-        audioRecord.startRecording()
         record = audioRecord
+        try {
+            if (AcousticEchoCanceler.isAvailable()) {
+                echoCanceler = AcousticEchoCanceler.create(audioRecord.audioSessionId)?.also { it.setEnabled(true) }
+            }
+            if (NoiseSuppressor.isAvailable()) {
+                noiseSuppressor = NoiseSuppressor.create(audioRecord.audioSessionId)?.also { it.setEnabled(true) }
+            }
+            audioRecord.startRecording()
+        } catch (e: Exception) {
+            release()
+            throw e
+        }
         running = true
         captureThread = thread(name = "live-mic") { captureLoop(audioRecord) }
     }
@@ -52,6 +65,10 @@ class AudioRecorder(private val onChunk: (ByteArray) -> Unit) {
         runCatching { record?.stop() } // Unblocks the pending read().
         captureThread?.join(STOP_TIMEOUT_MS)
         captureThread = null
+        release()
+    }
+
+    private fun release() {
         record?.release()
         record = null
         echoCanceler?.release()
@@ -68,6 +85,8 @@ class AudioRecorder(private val onChunk: (ByteArray) -> Unit) {
             if (read > 0) {
                 onChunk(buffer.copyOf(read))
             } else if (read < 0) {
+                // stop() also makes the pending read() fail, which is not an error.
+                if (running) onError(IllegalStateException("AudioRecord read failed: $read"))
                 break
             }
         }

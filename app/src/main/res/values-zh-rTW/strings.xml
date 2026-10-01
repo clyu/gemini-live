@@ -79,5 +79,6 @@
     <string name="error_missing_api_key">請先在設定頁輸入 API key</string>
     <string name="error_permission_denied">需要麥克風權限才能進行語音對話</string>
     <string name="error_audio">無法啟動音訊：%1$s</string>
+    <string name="error_microphone">麥克風已停止運作：%1$s</string>
     <string name="error_connection_closed">連線已結束：%1$s</string>
 </resources>

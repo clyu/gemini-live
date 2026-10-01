@@ -50,7 +50,10 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         .build()
     private val routing = AudioRouting(application)
     private val player = AudioPlayer()
-    private val recorder = AudioRecorder { pcm -> session?.sendAudio(pcm) }
+    private val recorder = AudioRecorder(
+        onChunk = { pcm -> session?.sendAudio(pcm) },
+        onError = { e -> viewModelScope.launch { onRecorderError(e) } },
+    )
 
     private val _state = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = _state.asStateFlow()
@@ -270,6 +273,13 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
         } catch (e: Exception) {
             endSession(getString(R.string.error_audio, e.message ?: e.javaClass.simpleName))
         }
+    }
+
+    /** The microphone failed during the conversation, which cannot carry on without it. */
+    private fun onRecorderError(e: Exception) {
+        // Outdated if the recorder has been stopped since, by ending the conversation or by muting.
+        if (_state.value.status == SessionStatus.Idle || _state.value.micMuted) return
+        endSession(getString(R.string.error_microphone, e.message ?: e.javaClass.simpleName))
     }
 
     /**
