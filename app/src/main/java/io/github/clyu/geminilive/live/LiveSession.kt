@@ -79,10 +79,10 @@ class LiveSession(
     }
 
     private fun buildSetupMessage(): String {
-        val model = settings.model.trim().let { if (it.startsWith("models/")) it else "models/$it" }
+        val model = settings.model.let { if (it.startsWith("models/")) it else "models/$it" }
         val voiceConfig = JSONObject().put(
             "prebuiltVoiceConfig",
-            JSONObject().put("voiceName", settings.voice.trim()),
+            JSONObject().put("voiceName", settings.voice),
         )
         val generationConfig = JSONObject()
             .put("responseModalities", JSONArray().put("AUDIO"))
