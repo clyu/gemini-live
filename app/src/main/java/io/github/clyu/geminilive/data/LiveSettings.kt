@@ -22,7 +22,7 @@ data class LiveSettings(
 
 /** Live API models offered as suggestions; any other model id can still be typed in. */
 val LIVE_MODELS = listOf(
-    "gemini-3.8-live",
+    LiveSettings.DEFAULT_MODEL,
     "gemini-3.8-live-extended-thinking",
     "gemini-3.1-flash-live-preview",
     "gemini-2.5-flash-native-audio-preview-12-2025",
