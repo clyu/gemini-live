@@ -147,7 +147,7 @@ class LiveSession(
     }
 
     private fun transcriptionConfig(): JSONObject {
-        val codes = settings.transcriptionLanguageCodes
+        val codes = settings.transcriptionLanguages
         return JSONObject().apply { if (codes.isNotEmpty()) put("languageCodes", JSONArray(codes)) }
     }
 

@@ -53,7 +53,6 @@ import io.github.clyu.geminilive.data.LiveSettings
 import io.github.clyu.geminilive.data.PREBUILT_VOICES
 import io.github.clyu.geminilive.data.THINKING_LEVELS
 import io.github.clyu.geminilive.data.TRANSCRIPTION_LANGUAGES
-import io.github.clyu.geminilive.data.TranscriptionLanguage
 
 @Composable
 fun SettingsScreen(onBack: () -> Unit, viewModel: SettingsViewModel = viewModel()) {
@@ -90,7 +89,10 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
     }
     // Codes missing from the check list could be neither shown nor unchecked, so they are dropped.
     var transcriptionLanguages by rememberSaveable {
-        mutableStateOf(selectedLanguages(initial.transcriptionLanguages).toCodes())
+        mutableStateOf(
+            TRANSCRIPTION_LANGUAGES.map { it.code }
+                .filter { code -> initial.transcriptionLanguages.any { it.equals(code, ignoreCase = true) } },
+        )
     }
     var systemInstruction by rememberSaveable { mutableStateOf(initial.systemInstruction) }
     var showApiKey by rememberSaveable { mutableStateOf(false) }
@@ -169,12 +171,12 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
                 supportingText = stringResource(R.string.settings_default_value, LiveSettings.DEFAULT_VOICE),
             )
             LanguageSelectField(
-                selected = selectedLanguages(transcriptionLanguages),
-                onSelectedChange = { transcriptionLanguages = it.toCodes() },
+                selected = transcriptionLanguages,
+                onSelectedChange = { transcriptionLanguages = it },
                 label = stringResource(R.string.settings_transcription_language),
                 supportingText = stringResource(
                     R.string.settings_transcription_language_hint,
-                    languageNames(selectedLanguages(LiveSettings.DEFAULT_TRANSCRIPTION_LANGUAGES)),
+                    languageNames(LiveSettings.DEFAULT_TRANSCRIPTION_LANGUAGES),
                 ),
             )
             OutlinedTextField(
@@ -285,24 +287,27 @@ private fun VoiceSelectField(
 }
 
 /**
- * A read-only field showing the names of the selected languages, which are picked from a check list
- * of [TRANSCRIPTION_LANGUAGES].
+ * A read-only field showing the names of the languages whose codes are [selected], which are picked
+ * from a check list of [TRANSCRIPTION_LANGUAGES] and kept in its order.
  */
 @Composable
 private fun LanguageSelectField(
-    selected: List<TranscriptionLanguage>,
-    onSelectedChange: (List<TranscriptionLanguage>) -> Unit,
+    selected: List<String>,
+    onSelectedChange: (List<String>) -> Unit,
     label: String,
     supportingText: String,
 ) {
     SelectField(languageNames(selected), label, supportingText) { _ ->
         TRANSCRIPTION_LANGUAGES.forEach { language ->
-            val checked = language in selected
+            val checked = language.code in selected
             DropdownMenuItem(
                 text = { Text(stringResource(language.label)) },
                 // The menu stays open so that several languages can be checked in a row.
                 onClick = {
-                    onSelectedChange(TRANSCRIPTION_LANGUAGES.filter { if (it == language) !checked else it in selected })
+                    onSelectedChange(
+                        TRANSCRIPTION_LANGUAGES.map { it.code }
+                            .filter { if (it == language.code) !checked else it in selected },
+                    )
                 },
                 leadingIcon = { Checkbox(checked = checked, onCheckedChange = null) },
             )
@@ -339,14 +344,9 @@ private fun SelectField(
     }
 }
 
+/** The names of the languages of [TRANSCRIPTION_LANGUAGES] whose codes are in [codes], in check-list order. */
 @Composable
-private fun languageNames(languages: List<TranscriptionLanguage>): String =
-    languages.map { stringResource(it.label) }.joinToString(stringResource(R.string.list_separator))
-
-/** The languages of [TRANSCRIPTION_LANGUAGES] whose codes appear in [codes], in check-list order. */
-private fun selectedLanguages(codes: String): List<TranscriptionLanguage> {
-    val parsed = LiveSettings.parseLanguageCodes(codes)
-    return TRANSCRIPTION_LANGUAGES.filter { language -> parsed.any { it.equals(language.code, ignoreCase = true) } }
-}
-
-private fun List<TranscriptionLanguage>.toCodes(): String = joinToString(", ") { it.code }
+private fun languageNames(codes: List<String>): String =
+    TRANSCRIPTION_LANGUAGES.filter { it.code in codes }
+        .map { stringResource(it.label) }
+        .joinToString(stringResource(R.string.list_separator))

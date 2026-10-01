@@ -9,21 +9,14 @@ data class LiveSettings(
     val voice: String = DEFAULT_VOICE,
     /** A thinkingLevel value such as "LOW"; blank sends one only to models that require it. */
     val thinkingLevel: String = "",
-    /** Comma-separated BCP-47 codes hinting the caption language; blank means automatic detection. */
-    val transcriptionLanguages: String = DEFAULT_TRANSCRIPTION_LANGUAGES,
+    /** BCP-47 codes hinting the caption language; empty means automatic detection. */
+    val transcriptionLanguages: List<String> = DEFAULT_TRANSCRIPTION_LANGUAGES,
     val systemInstruction: String = "",
 ) {
-    val transcriptionLanguageCodes: List<String>
-        get() = parseLanguageCodes(transcriptionLanguages)
-
     companion object {
         const val DEFAULT_MODEL = "gemini-3.8-live"
         const val DEFAULT_VOICE = "Zephyr"
-        const val DEFAULT_TRANSCRIPTION_LANGUAGES = "zh-Hant, en"
-
-        /** Splits a comma- or space-separated list of language codes. */
-        fun parseLanguageCodes(text: String): List<String> =
-            text.split(',', '，', ' ').map { it.trim() }.filter { it.isNotEmpty() }
+        val DEFAULT_TRANSCRIPTION_LANGUAGES = listOf("zh-Hant", "en")
     }
 }
 
