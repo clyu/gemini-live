@@ -12,7 +12,6 @@
     <string name="action_unmute">取消靜音</string>
     <string name="action_show_key">顯示 API key</string>
     <string name="action_hide_key">隱藏 API key</string>
-    <string name="action_show_suggestions">顯示選項</string>
 
     <string name="status_idle">按下通話鈕，開始與 Gemini 即時對話</string>
     <string name="status_connecting">連線中…</string>

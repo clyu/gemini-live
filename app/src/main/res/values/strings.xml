@@ -15,7 +15,6 @@
     <string name="action_unmute">Unmute microphone</string>
     <string name="action_show_key">Show API key</string>
     <string name="action_hide_key">Hide API key</string>
-    <string name="action_show_suggestions">Show options</string>
 
     <string name="status_idle">Tap the call button to start talking with Gemini</string>
     <string name="status_connecting">Connecting…</string>

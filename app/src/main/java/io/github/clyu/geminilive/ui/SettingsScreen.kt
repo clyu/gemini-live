@@ -2,7 +2,6 @@ package io.github.clyu.geminilive.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
@@ -14,7 +13,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
@@ -205,31 +203,15 @@ private fun SuggestionTextField(
     supportingText: String,
     suggestions: List<String>,
 ) {
-    var expanded by remember { mutableStateOf(false) }
-    Box(Modifier.fillMaxWidth()) {
-        OutlinedTextField(
-            value = value,
-            onValueChange = onValueChange,
-            label = { Text(label) },
-            supportingText = { Text(supportingText) },
-            singleLine = true,
-            trailingIcon = {
-                IconButton(onClick = { expanded = true }) {
-                    Icon(painterResource(R.drawable.ic_arrow_drop_down), stringResource(R.string.action_show_suggestions))
-                }
-            },
-            modifier = Modifier.fillMaxWidth(),
-        )
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
-            suggestions.forEach { suggestion ->
-                DropdownMenuItem(
-                    text = { Text(suggestion) },
-                    onClick = {
-                        onValueChange(suggestion)
-                        expanded = false
-                    },
-                )
-            }
+    SelectField(value, label, supportingText, onValueChange) { close ->
+        suggestions.forEach { suggestion ->
+            DropdownMenuItem(
+                text = { Text(suggestion) },
+                onClick = {
+                    onValueChange(suggestion)
+                    close()
+                },
+            )
         }
     }
 }
@@ -315,27 +297,48 @@ private fun LanguageSelectField(
     }
 }
 
-/** A read-only field that opens a drop-down menu when tapped; [menuContent] receives a callback closing it. */
+/**
+ * A field that opens a drop-down menu when tapped; [menuContent] receives a callback closing it.
+ * It is read-only unless [onValueChange] is given, which lets the text be typed as well.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun SelectField(
     value: String,
     label: String,
     supportingText: String,
+    onValueChange: ((String) -> Unit)? = null,
     menuContent: @Composable (close: () -> Unit) -> Unit,
 ) {
+    val editable = onValueChange != null
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
             value = value,
-            onValueChange = {},
-            readOnly = true,
+            onValueChange = onValueChange ?: {},
+            readOnly = !editable,
             label = { Text(label) },
             supportingText = { Text(supportingText) },
             singleLine = true,
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded) },
+            trailingIcon = {
+                ExposedDropdownMenuDefaults.TrailingIcon(
+                    expanded = expanded,
+                    // Tapping an editable field also places the cursor, so its icon toggles the menu too.
+                    modifier = if (editable) {
+                        Modifier.menuAnchor(ExposedDropdownMenuAnchorType.SecondaryEditable)
+                    } else {
+                        Modifier
+                    },
+                )
+            },
             modifier = Modifier
-                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                .menuAnchor(
+                    if (editable) {
+                        ExposedDropdownMenuAnchorType.PrimaryEditable
+                    } else {
+                        ExposedDropdownMenuAnchorType.PrimaryNotEditable
+                    },
+                )
                 .fillMaxWidth(),
         )
         ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
