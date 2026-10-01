@@ -112,7 +112,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             restoreJob.join()
             val current = settingsRepository.settings.first()
             if (current.apiKey.isBlank()) {
-                _state.update { it.copy(status = SessionStatus.Idle, message = getString(R.string.error_missing_api_key)) }
+                endSession(getString(R.string.error_missing_api_key))
                 return@launch
             }
             settings = current
