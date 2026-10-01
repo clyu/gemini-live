@@ -24,7 +24,7 @@ sealed interface LiveEvent {
     data class OutputTranscription(val text: String) : LiveEvent
     data object Interrupted : LiveEvent
     data object TurnComplete : LiveEvent
-    data class GoAway(val timeLeft: String?) : LiveEvent
+    data object GoAway : LiveEvent
     data class ResumptionHandle(val handle: String) : LiveEvent
     data class Closed(val code: Int, val reason: String?, val error: Throwable?) : LiveEvent
 }
@@ -169,9 +169,7 @@ class LiveSession(
             val handle = update.optString("newHandle")
             if (update.optBoolean("resumable") && handle.isNotEmpty()) emit(LiveEvent.ResumptionHandle(handle))
         }
-        message.optJSONObject("goAway")?.let { goAway ->
-            emit(LiveEvent.GoAway(goAway.optString("timeLeft").ifEmpty { null }))
-        }
+        if (message.has("goAway")) emit(LiveEvent.GoAway)
     }
 
     private fun handleServerContent(content: JSONObject) {
