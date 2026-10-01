@@ -15,6 +15,8 @@ import io.github.clyu.geminilive.data.TranscriptEntry
 import io.github.clyu.geminilive.data.TranscriptRepository
 import io.github.clyu.geminilive.live.LiveEvent
 import io.github.clyu.geminilive.live.LiveSession
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.delay
@@ -90,7 +92,9 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
             savedTranscript = saved
             _state.update { it.copy(transcript = saved) }
         }
-        viewModelScope.launch {
+        // Not in viewModelScope, which is cancelled before onCleared() runs and would drop the
+        // transcript saved there. This ends once pendingSaves is closed and the last one is written.
+        CoroutineScope(Dispatchers.IO).launch {
             for (transcript in pendingSaves) transcriptRepository.save(transcript)
         }
     }
@@ -315,6 +319,7 @@ class ChatViewModel(application: Application) : AndroidViewModel(application) {
     override fun onCleared() {
         endSession(null)
         events.close()
+        pendingSaves.close()
         httpClient.dispatcher.executorService.shutdown()
     }
 
