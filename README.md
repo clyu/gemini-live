@@ -15,7 +15,7 @@ An Android app for real-time voice conversations with Gemini through the [Gemini
   - API key
   - Live API model (defaults to `gemini-3.8-live`; any other model ID can be entered)
   - Thinking level (defaults to Automatic, which asks `-extended-thinking` models for the low level and sends none to other models, since `gemini-3.8-live` does not accept one; or pick minimal, low, medium or high)
-  - System instruction
+  - System instructions (save several, each with a name, and pick the one to use, or none)
   - Model voice (defaults to `Zephyr`; pick from 30 prebuilt voices)
   - Caption language (defaults to Traditional Chinese and English; check one or more languages from a list, or none for automatic detection)
 
@@ -41,7 +41,7 @@ Requirements: AGP 9.4, Gradle 9.6 or later, JDK 17 or later, compileSdk 37. The 
 
 ## Notes
 
-- The API key is stored in the app's private DataStore and is excluded from cloud backups and device transfers.
+- The API key and the saved system instructions are stored in the app's private DataStore, which is excluded from cloud backups and device transfers.
 - The conversation transcript is stored in the app's `noBackupFilesDir`, so it is likewise never included in cloud backups or device transfers. To keep writes down, it is saved only when a conversation ends or the app leaves the foreground; captions that arrive while the app is in the background are lost if the app is closed before either happens again.
 - The transcript is given to the model as the text of the captions (via `clientContent` with `historyConfig.initialHistoryInClientContent`), so the model sees any transcription errors rather than what was actually said. All of it is sent each time a conversation starts, so deleting captions that are no longer needed keeps token usage down.
 - Audio is only captured while the app is in the foreground; Android stops delivering microphone audio once the app is in the background.

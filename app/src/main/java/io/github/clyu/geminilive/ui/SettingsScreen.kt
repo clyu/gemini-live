@@ -12,12 +12,14 @@ import androidx.compose.foundation.layout.union
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,14 +28,18 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.SpanStyle
@@ -41,6 +47,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -49,6 +56,7 @@ import io.github.clyu.geminilive.R
 import io.github.clyu.geminilive.data.LIVE_MODELS
 import io.github.clyu.geminilive.data.LiveSettings
 import io.github.clyu.geminilive.data.PREBUILT_VOICES
+import io.github.clyu.geminilive.data.SystemPrompt
 import io.github.clyu.geminilive.data.THINKING_LEVELS
 import io.github.clyu.geminilive.data.TRANSCRIPTION_LANGUAGES
 
@@ -92,11 +100,17 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
                 .filter { code -> initial.transcriptionLanguages.any { it.equals(code, ignoreCase = true) } },
         )
     }
-    var systemInstruction by rememberSaveable { mutableStateOf(initial.systemInstruction) }
+    var systemPrompts by rememberSaveable(stateSaver = SystemPromptsSaver) { mutableStateOf(initial.systemPrompts) }
+    var activeSystemPromptId by rememberSaveable { mutableStateOf(initial.activeSystemPromptId) }
+    // The choice made before the active prompt, which deleting that prompt returns to.
+    var previousSystemPromptId by rememberSaveable { mutableStateOf<Long?>(null) }
+    // Prompts added on this visit and not edited since, which leaving the screen drops as if deleted.
+    var untouchedSystemPromptIds by rememberSaveable { mutableStateOf(emptySet<Long>()) }
     var showApiKey by rememberSaveable { mutableStateOf(false) }
 
     // Settings are saved whenever the user leaves the screen.
     val done = {
+        val dropsActivePrompt = activeSystemPromptId in untouchedSystemPromptIds
         onDone(
             LiveSettings(
                 apiKey = apiKey,
@@ -104,7 +118,8 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
                 thinkingLevel = thinkingLevel,
                 voice = voice,
                 transcriptionLanguages = transcriptionLanguages,
-                systemInstruction = systemInstruction,
+                systemPrompts = systemPrompts.filterNot { it.id in untouchedSystemPromptIds },
+                activeSystemPromptId = if (dropsActivePrompt) previousSystemPromptId else activeSystemPromptId,
             ),
         )
     }
@@ -177,14 +192,55 @@ private fun SettingsForm(initial: LiveSettings, onDone: (LiveSettings) -> Unit) 
                     languageNames(LiveSettings.DEFAULT_TRANSCRIPTION_LANGUAGES),
                 ),
             )
-            OutlinedTextField(
-                value = systemInstruction,
-                onValueChange = { systemInstruction = it },
-                label = { Text(stringResource(R.string.settings_system_instruction)) },
-                supportingText = { Text(stringResource(R.string.settings_system_instruction_hint)) },
-                minLines = 5,
-                modifier = Modifier.fillMaxWidth(),
+            val activePrompt = systemPrompts.find { it.id == activeSystemPromptId }
+            val selectPrompt = { id: Long? ->
+                if (id != activeSystemPromptId) {
+                    // An untouched new prompt is dropped on leaving the screen, so it is not one to return to.
+                    if (activeSystemPromptId !in untouchedSystemPromptIds) {
+                        previousSystemPromptId = activeSystemPromptId
+                    }
+                    activeSystemPromptId = id
+                }
+            }
+            val replacePrompt = { edited: SystemPrompt ->
+                systemPrompts = systemPrompts.map { if (it.id == edited.id) edited else it }
+                untouchedSystemPromptIds -= edited.id
+            }
+            // A new prompt is named after its id, which no other prompt has, so that the names do not repeat.
+            val nextPromptId = (systemPrompts.maxOfOrNull { it.id } ?: 0L) + 1
+            val newPromptName = stringResource(R.string.system_prompt_default_name, nextPromptId)
+            SystemPromptSelectField(
+                prompts = systemPrompts,
+                selected = activePrompt,
+                onSelect = { selectPrompt(it?.id) },
+                onRename = { name -> activePrompt?.let { replacePrompt(it.copy(name = name)) } },
+                onAdd = {
+                    systemPrompts = systemPrompts + SystemPrompt(id = nextPromptId, name = newPromptName, text = "")
+                    untouchedSystemPromptIds += nextPromptId
+                    selectPrompt(nextPromptId)
+                },
+                onDelete = {
+                    systemPrompts = systemPrompts.filterNot { it.id == activeSystemPromptId }
+                    // Back to the choice made before, unless that is gone as well.
+                    activeSystemPromptId = previousSystemPromptId?.takeIf { id -> systemPrompts.any { it.id == id } }
+                    previousSystemPromptId = null
+                },
+                label = stringResource(R.string.settings_system_instruction),
+                supportingText = stringResource(R.string.settings_system_prompt_hint),
             )
+            if (activePrompt != null) {
+                // Keyed by prompt so that switching to another one starts the text field afresh.
+                key(activePrompt.id) {
+                    OutlinedTextField(
+                        value = activePrompt.text,
+                        onValueChange = { replacePrompt(activePrompt.copy(text = it)) },
+                        label = { Text(stringResource(R.string.settings_system_prompt_text)) },
+                        supportingText = { Text(stringResource(R.string.settings_system_instruction_hint)) },
+                        minLines = 5,
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                }
+            }
             Text(
                 text = stringResource(R.string.settings_footer),
                 style = MaterialTheme.typography.bodySmall,
@@ -298,6 +354,102 @@ private fun LanguageSelectField(
 }
 
 /**
+ * A field showing the name of the [selected] system prompt, which can be typed in to rename it, or
+ * the choice of none, which is read-only. Its drop-down picks one of [prompts] or none, adds a new
+ * prompt, and deletes the selected one after asking for confirmation.
+ */
+@Composable
+private fun SystemPromptSelectField(
+    prompts: List<SystemPrompt>,
+    selected: SystemPrompt?,
+    onSelect: (SystemPrompt?) -> Unit,
+    onRename: (String) -> Unit,
+    onAdd: () -> Unit,
+    onDelete: () -> Unit,
+    label: String,
+    supportingText: String,
+) {
+    val none = stringResource(R.string.system_prompt_none)
+    val focusManager = LocalFocusManager.current
+    var confirmingDelete by rememberSaveable { mutableStateOf(false) }
+    SelectField(
+        value = selected?.name ?: none,
+        label = label,
+        supportingText = supportingText,
+        onValueChange = if (selected != null) onRename else null,
+    ) { close ->
+        // Picking from the menu also ends any renaming, so that the keyboard does not stay up over a
+        // field that may have turned read-only.
+        val closeMenu = {
+            close()
+            focusManager.clearFocus()
+        }
+        DropdownMenuItem(
+            text = { Text(none) },
+            onClick = {
+                onSelect(null)
+                closeMenu()
+            },
+        )
+        prompts.forEach { prompt ->
+            DropdownMenuItem(
+                text = { Text(promptName(prompt), maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                onClick = {
+                    onSelect(prompt)
+                    closeMenu()
+                },
+            )
+        }
+        HorizontalDivider()
+        DropdownMenuItem(
+            text = { Text(stringResource(R.string.action_add_system_prompt)) },
+            onClick = {
+                onAdd()
+                closeMenu()
+            },
+            leadingIcon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
+        )
+        if (selected != null) {
+            DropdownMenuItem(
+                text = {
+                    Text(
+                        text = stringResource(R.string.action_delete_system_prompt, promptName(selected)),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                },
+                onClick = {
+                    confirmingDelete = true
+                    closeMenu()
+                },
+                leadingIcon = { Icon(painterResource(R.drawable.ic_delete), contentDescription = null) },
+            )
+        }
+    }
+    if (confirmingDelete && selected != null) {
+        AlertDialog(
+            onDismissRequest = { confirmingDelete = false },
+            title = { Text(stringResource(R.string.delete_system_prompt_title, promptName(selected))) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirmingDelete = false
+                        onDelete()
+                    },
+                ) {
+                    Text(stringResource(R.string.action_delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmingDelete = false }) {
+                    Text(stringResource(R.string.action_cancel))
+                }
+            },
+        )
+    }
+}
+
+/**
  * A field that opens a drop-down menu when tapped; [menuContent] receives a callback closing it.
  * It is read-only unless [onValueChange] is given, which lets the text be typed as well.
  */
@@ -353,3 +505,22 @@ private fun languageNames(codes: List<String>): String =
     TRANSCRIPTION_LANGUAGES.filter { it.code in codes }
         .map { stringResource(it.label) }
         .joinToString(stringResource(R.string.list_separator))
+
+/** The name of [prompt], or failing that the first non-blank line of its text. */
+@Composable
+private fun promptName(prompt: SystemPrompt): String =
+    (sequenceOf(prompt.name) + prompt.text.lineSequence())
+        .map { it.trim() }
+        .firstOrNull { it.isNotEmpty() }
+        ?: stringResource(R.string.system_prompt_untitled)
+
+/**
+ * Saves the prompts as a flat list of their ids, names and texts. Unlike with listSaver, an empty
+ * list is saved as such rather than as nothing, which would be restored as a null state value.
+ */
+private val SystemPromptsSaver = Saver<List<SystemPrompt>, ArrayList<Any>>(
+    save = { prompts -> prompts.flatMapTo(ArrayList()) { listOf(it.id, it.name, it.text) } },
+    restore = { fields ->
+        fields.chunked(3) { (id, name, text) -> SystemPrompt(id as Long, name as String, text as String) }
+    },
+)

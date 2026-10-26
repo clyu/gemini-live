@@ -11,14 +11,24 @@ data class LiveSettings(
     val thinkingLevel: String = "",
     /** BCP-47 codes hinting the caption language; empty means automatic detection. */
     val transcriptionLanguages: List<String> = DEFAULT_TRANSCRIPTION_LANGUAGES,
-    val systemInstruction: String = "",
+    /** The saved system instructions, in the order they were added. */
+    val systemPrompts: List<SystemPrompt> = emptyList(),
+    /** The id of the prompt given to the model as its system instruction; null gives none. */
+    val activeSystemPromptId: Long? = null,
 ) {
+    /** The text of the active system prompt; blank when none is active. */
+    val systemInstruction: String
+        get() = systemPrompts.find { it.id == activeSystemPromptId }?.text.orEmpty()
+
     companion object {
         const val DEFAULT_MODEL = "gemini-3.8-live"
         const val DEFAULT_VOICE = "Zephyr"
         val DEFAULT_TRANSCRIPTION_LANGUAGES = listOf("zh-Hant", "en")
     }
 }
+
+/** A saved system instruction. The name only tells the prompts apart in the settings. */
+data class SystemPrompt(val id: Long, val name: String, val text: String)
 
 /** Live API models offered as suggestions; any other model id can still be typed in. */
 val LIVE_MODELS = listOf(

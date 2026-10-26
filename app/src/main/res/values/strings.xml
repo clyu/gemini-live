@@ -15,6 +15,9 @@
     <string name="action_unmute">Unmute microphone</string>
     <string name="action_show_key">Show API key</string>
     <string name="action_hide_key">Hide API key</string>
+    <string name="action_add_system_prompt">New instruction</string>
+    <string name="action_delete_system_prompt">Delete “%1$s”</string>
+    <string name="action_cancel">Cancel</string>
 
     <string name="status_idle">Tap the call button to start talking with Gemini</string>
     <string name="status_connecting">Connecting…</string>
@@ -40,8 +43,15 @@
     <string name="settings_transcription_language">Caption language</string>
     <string name="settings_transcription_language_hint">Default: %1$s. Select none to detect automatically</string>
     <string name="settings_system_instruction">System instruction</string>
-    <string name="settings_system_instruction_hint">The model\'s role, tone or reply language (optional)</string>
+    <string name="settings_system_prompt_hint">Save several, switch between them or rename one here</string>
+    <string name="settings_system_prompt_text">Content</string>
+    <string name="settings_system_instruction_hint">The model\'s role, tone or reply language</string>
     <string name="settings_footer">Changes are saved when you leave this screen and take effect the next time you start a conversation.</string>
+
+    <string name="system_prompt_none">None</string>
+    <string name="system_prompt_untitled">Untitled</string>
+    <string name="system_prompt_default_name">Instruction %1$d</string>
+    <string name="delete_system_prompt_title">Delete “%1$s”?</string>
 
     <!-- Voice styles from the Gemini speech generation docs. -->
     <string name="voice_style_bright">Bright</string>
